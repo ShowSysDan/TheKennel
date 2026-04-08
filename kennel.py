@@ -182,16 +182,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     .player-btn:active { background: rgba(0,0,0,0.5); }
     .player-btn svg { width: 16px; height: 16px; fill: var(--cream); opacity: 0.85; transition: opacity 0.15s; }
     .player-btn:hover svg { opacity: 1; }
-    .player-live { display: flex; align-items: center; gap: 7px; padding: 0 14px; border-right: 1px solid rgba(0,0,0,0.25); flex-shrink: 0; }
-    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--card-sub); flex-shrink: 0; transition: background 0.3s, box-shadow 0.3s; }
-    .live-dot.active { background: #c04020; box-shadow: 0 0 6px rgba(192,64,32,0.7); animation: pulse 1.8s ease-in-out infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-    .live-label { font-family: 'Barlow Condensed', sans-serif; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--card-sub); transition: color 0.3s; }
-    .live-label.active { color: #c04020; }
     .player-name { padding: 0 14px; border-right: 1px solid rgba(0,0,0,0.25); flex-shrink: 0; display: flex; align-items: center; }
     .player-name span { font-family: 'Barlow Condensed', sans-serif; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream-dk); opacity: 0.55; }
-    .player-timer { padding: 0 16px; border-right: 1px solid rgba(0,0,0,0.25); flex-shrink: 0; display: flex; align-items: center; }
-    .player-timer span { font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.12em; color: var(--cream); opacity: 0.65; font-variant-numeric: tabular-nums; }
     .player-spacer { flex: 1; }
     .player-volume { display: flex; align-items: center; gap: 10px; padding: 0 16px; border-left: 1px solid rgba(0,0,0,0.25); flex-shrink: 0; }
     .player-volume svg { width: 13px; height: 13px; fill: var(--cream-dk); opacity: 0.5; flex-shrink: 0; }
@@ -277,25 +269,17 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     footer { text-align: center; margin-top: 40px; font-family: 'Barlow Condensed', sans-serif; font-size: 0.62rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--wood-hi); opacity: 0.3; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ── Responsive: progressively collapse player as width narrows ── */
-    @media (max-width: 920px) {
-      .player-timer { display: none; }
-      .player-name  { display: none; }
+    /* ── Responsive: hide stream name at narrow widths ── */
+    @media (max-width: 800px) {
+      .player-name { display: none; }
       .search-wrap input { width: 160px; }
     }
-    @media (max-width: 700px) {
-      .live-label { display: none; }
-      .player-live { padding: 0 10px; }
-    }
-    /* ── Mobile: full stack — restore everything ── */
+    /* ── Mobile: full stack ── */
     @media (max-width: 640px) {
       .header-bar { flex-direction: column; align-items: flex-start; }
       .sign { border-right: none; border-bottom: 2px solid rgba(0,0,0,0.35); width: 100%; }
       .player-inline { border-right: none; border-left: none; border-bottom: 2px solid rgba(0,0,0,0.35); width: 100%; }
-      .player-timer  { display: flex; }
-      .player-name   { display: flex; }
-      .live-label    { display: inline; }
-      .player-live   { padding: 0 14px; }
+      .player-name { display: flex; }
       .search-area { padding: 10px 16px; width: 100%; justify-content: flex-start; }
       .search-wrap input { flex: 1; width: auto; }
     }
@@ -315,12 +299,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         <svg id="icon-play" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8 5v14l11-7z"/></svg>
         <svg id="icon-stop" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display:none;"><rect x="5" y="5" width="14" height="14" rx="1"/></svg>
       </button>
-      <div class="player-live">
-        <div class="live-dot" id="live-dot"></div>
-        <span class="live-label" id="live-label">Live</span>
-      </div>
       <div class="player-name"><span id="player-stream-name">Stream</span></div>
-      <div class="player-timer"><span id="player-timer">0:00:00</span></div>
       <div class="player-spacer"></div>
       <div class="player-volume">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
@@ -423,27 +402,13 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     var btn       = document.getElementById('player-btn');
     var iconPlay  = document.getElementById('icon-play');
     var iconStop  = document.getElementById('icon-stop');
-    var liveDot   = document.getElementById('live-dot');
-    var liveLabel = document.getElementById('live-label');
-    var timerEl   = document.getElementById('player-timer');
     var volSlider = document.getElementById('volume-slider');
-    var audio = null, playing = false, startTime = null, timerTick = null;
+    var audio = null, playing = false;
 
-    function formatTime(secs) {
-      var h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = Math.floor(secs % 60);
-      return h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-    }
-    function startTimer() {
-      startTime = Date.now();
-      timerTick = setInterval(function() { timerEl.textContent = formatTime((Date.now() - startTime) / 1000); }, 1000);
-    }
-    function stopTimer() { clearInterval(timerTick); timerEl.textContent = '0:00:00'; }
     function setPlaying(state) {
       playing = state;
       iconPlay.style.display = state ? 'none' : '';
       iconStop.style.display = state ? '' : 'none';
-      liveDot.classList.toggle('active', state);
-      liveLabel.classList.toggle('active', state);
       btn.title = state ? 'Stop stream' : 'Play stream';
     }
 
@@ -472,13 +437,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
         audio.muted = false;
         audio.play().catch(function() {});
         setPlaying(true);
-        startTimer();
-        audio.addEventListener('error', function() { setPlaying(false); stopTimer(); audio = null; }, { once: true });
+        audio.addEventListener('error', function() { setPlaying(false); audio = null; }, { once: true });
       } else {
         // Mute instead of disconnect — stays buffered for instant resume
         audio.muted = true;
         setPlaying(false);
-        stopTimer();
       }
     });
 
