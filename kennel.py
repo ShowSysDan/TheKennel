@@ -279,21 +279,23 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
     /* ── Responsive: progressively collapse player as width narrows ── */
     @media (max-width: 920px) {
-      .player-volume { display: none; }
-      .search-wrap input { width: 160px; }
-    }
-    @media (max-width: 740px) {
       .player-timer { display: none; }
       .player-name  { display: none; }
+      .search-wrap input { width: 160px; }
     }
-    /* ── Mobile: full stack ── */
+    @media (max-width: 700px) {
+      .live-label { display: none; }
+      .player-live { padding: 0 10px; }
+    }
+    /* ── Mobile: full stack — restore everything ── */
     @media (max-width: 640px) {
       .header-bar { flex-direction: column; align-items: flex-start; }
       .sign { border-right: none; border-bottom: 2px solid rgba(0,0,0,0.35); width: 100%; }
       .player-inline { border-right: none; border-left: none; border-bottom: 2px solid rgba(0,0,0,0.35); width: 100%; }
-      .player-volume { display: flex; }
       .player-timer  { display: flex; }
       .player-name   { display: flex; }
+      .live-label    { display: inline; }
+      .player-live   { padding: 0 14px; }
       .search-area { padding: 10px 16px; width: 100%; justify-content: flex-start; }
       .search-wrap input { flex: 1; width: auto; }
     }
