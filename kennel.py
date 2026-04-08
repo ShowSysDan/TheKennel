@@ -277,11 +277,23 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     footer { text-align: center; margin-top: 40px; font-family: 'Barlow Condensed', sans-serif; font-size: 0.62rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--wood-hi); opacity: 0.3; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ── Mobile ── */
+    /* ── Responsive: progressively collapse player as width narrows ── */
+    @media (max-width: 920px) {
+      .player-volume { display: none; }
+      .search-wrap input { width: 160px; }
+    }
+    @media (max-width: 740px) {
+      .player-timer { display: none; }
+      .player-name  { display: none; }
+    }
+    /* ── Mobile: full stack ── */
     @media (max-width: 640px) {
       .header-bar { flex-direction: column; align-items: flex-start; }
       .sign { border-right: none; border-bottom: 2px solid rgba(0,0,0,0.35); width: 100%; }
       .player-inline { border-right: none; border-left: none; border-bottom: 2px solid rgba(0,0,0,0.35); width: 100%; }
+      .player-volume { display: flex; }
+      .player-timer  { display: flex; }
+      .player-name   { display: flex; }
       .search-area { padding: 10px 16px; width: 100%; justify-content: flex-start; }
       .search-wrap input { flex: 1; width: auto; }
     }
