@@ -218,22 +218,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     }
     .search-wrap .search-btn svg { width: 14px; height: 14px; stroke: var(--card-sub); fill: none; stroke-width: 2; stroke-linecap: round; }
 
-    /* ── Sort bar ── */
-    .sort-bar { display: flex; align-items: center; gap: 6px; margin: 18px 0 0; padding: 0 2px; }
-    .sort-label {
-      font-family: 'Barlow Condensed', sans-serif; font-size: 0.58rem; font-weight: 700;
-      letter-spacing: 0.3em; text-transform: uppercase; color: var(--card-sub); margin-right: 4px; opacity: 0.7;
-    }
-    .sort-btn {
-      font-family: 'Barlow Condensed', sans-serif; font-size: 0.62rem; font-weight: 600;
-      letter-spacing: 0.16em; text-transform: uppercase; color: var(--cream-dk);
-      background: rgba(0,0,0,0.25); border: 1px solid var(--chain-dk);
-      padding: 4px 10px; cursor: pointer; outline: none;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
-    }
-    .sort-btn:hover { border-color: var(--chain); color: var(--cream); }
-    .sort-btn.active { border-color: var(--rust-lt); color: var(--rust-lt); background: rgba(110,32,6,0.15); }
-
     /* ── Kennel grid ── */
     .kennel-frame { position: relative; padding: 10px 0; margin-top: 10px; }
     .kennel-frame::before, .kennel-frame::after {
@@ -341,12 +325,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       </div>
     </div>
   </div>
-  <div class="sort-bar">
-    <span class="sort-label">Sort</span>
-    <button class="sort-btn active" data-sort="default">Default</button>
-    <button class="sort-btn" data-sort="az">A &ndash; Z</button>
-    <button class="sort-btn" data-sort="section">By Section</button>
-  </div>
   <div class="kennel-frame">
     <div id="kennel-grid">
       <div id="empty-msg">No dogs in this run.</div>
@@ -361,10 +339,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   const showPlayer = __SHOW_PLAYER__;
   const tools      = __TOOLS__;
 
-  const grid      = document.getElementById('kennel-grid');
-  const emptyMsg  = document.getElementById('empty-msg');
-  const search    = document.getElementById('search-input');
-  let currentSort = 'default';
+  const grid     = document.getElementById('kennel-grid');
+  const emptyMsg = document.getElementById('empty-msg');
+  const search   = document.getElementById('search-input');
 
   function appendCard(tool, i) {
     const tag = tool.tag || ('RUN ' + String(i + 1).padStart(2, '0'));
@@ -392,27 +369,20 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     grid.querySelectorAll('.kennel-card, .section-header').forEach(function(c) { c.remove(); });
     if (list.length === 0) { emptyMsg.style.display = 'block'; return; }
     emptyMsg.style.display = 'none';
-    if (currentSort === 'section') {
-      var groups = {}, order = [];
-      list.forEach(function(t) {
-        var s = t.section || 'Other';
-        if (!groups[s]) { groups[s] = []; order.push(s); }
-        groups[s].push(t);
-      });
-      var idx = 0;
-      order.forEach(function(sec) {
-        var hdr = document.createElement('div');
-        hdr.className = 'section-header';
-        hdr.textContent = sec;
-        grid.insertBefore(hdr, emptyMsg);
-        groups[sec].forEach(function(t) { appendCard(t, idx++); });
-      });
-    } else {
-      var sorted = currentSort === 'az'
-        ? list.slice().sort(function(a, b) { return a.name.toLowerCase().localeCompare(b.name.toLowerCase()); })
-        : list;
-      sorted.forEach(function(t, i) { appendCard(t, i); });
-    }
+    var groups = {}, order = [];
+    list.forEach(function(t) {
+      var s = t.section || 'Other';
+      if (!groups[s]) { groups[s] = []; order.push(s); }
+      groups[s].push(t);
+    });
+    var idx = 0;
+    order.forEach(function(sec) {
+      var hdr = document.createElement('div');
+      hdr.className = 'section-header';
+      hdr.textContent = sec;
+      grid.insertBefore(hdr, emptyMsg);
+      groups[sec].forEach(function(t) { appendCard(t, idx++); });
+    });
   }
 
   function filterTools(q) {
@@ -426,15 +396,6 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   }
 
   function refresh() { buildCards(filterTools(search.value.trim())); }
-
-  document.querySelectorAll('.sort-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.sort-btn').forEach(function(b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-      currentSort = btn.dataset.sort;
-      refresh();
-    });
-  });
 
   search.addEventListener('input', refresh);
   buildCards(tools);
