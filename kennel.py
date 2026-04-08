@@ -776,8 +776,8 @@ if __name__ == "__main__":
     tools = load_tools()
     KennelHandler._page = build_html(tools)
 
+    socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer((HOST, PORT), KennelHandler) as httpd:
-        httpd.allow_reuse_address = True
         addr = "http://localhost" + (f":{PORT}" if PORT != 80 else "")
         print(f"The Kennel is running at {addr}")
         print(f"  Admin:  {addr}/kennel-admin")
