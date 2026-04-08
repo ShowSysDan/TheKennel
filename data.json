@@ -1,0 +1,82 @@
+{
+  "tools": [
+    {
+      "name": "Uptime Kuma",
+      "url": "http://10.201.2.102:5400",
+      "desc": "Production Network uptime monitor.",
+      "section": "Monitoring"
+    },
+    {
+      "name": "Uptime Kuma Dashboard",
+      "url": "http://10.201.2.102:5400/status/dpcpn",
+      "desc": "Production Network uptime monitor dashboard.",
+      "section": "Monitoring"
+    },
+    {
+      "name": "FetchLog",
+      "url": "http://10.201.2.102:5200",
+      "desc": "SysLog Server for Production Equipment",
+      "section": "Monitoring"
+    },
+    {
+      "name": "QSYS Status",
+      "url": "http://10.201.111.10/api-uci/v0/ucis/89b8c863-bbab-423d-9d85-72539864e4ab",
+      "desc": "WebUI for Qsys Status UCI",
+      "section": "Monitoring"
+    },
+    {
+      "name": "WebRetriever",
+      "url": "http://10.1.248.193:7212",
+      "desc": "Retrieves HTML & image content for display on the NDI network.",
+      "section": "Media"
+    },
+    {
+      "name": "Multiview 1",
+      "url": "http://10.1.248.191:8901",
+      "desc": "Tractus Multiview for NDI.",
+      "section": "Media"
+    },
+    {
+      "name": "Multiview 2",
+      "url": "http://10.1.248.192:8901",
+      "desc": "Tractus Multiview for NDI.",
+      "section": "Media"
+    },
+    {
+      "name": "Icecast",
+      "url": "http://10.201.2.102:5500/admin/",
+      "desc": "Radio Station Service",
+      "section": "Media"
+    },
+    {
+      "name": "Bark Extractor",
+      "url": "http://10.201.2.102:5100",
+      "desc": "Youtube audio downloader",
+      "section": "Media"
+    },
+    {
+      "name": "Doggie Door",
+      "url": "http://10.201.2.101:5500",
+      "desc": "Production WireGuard VPN.",
+      "section": "Network"
+    },
+    {
+      "name": "LabVision",
+      "url": "http://10.201.2.102:5000",
+      "desc": "ArtsVision API Manager",
+      "section": "Network"
+    },
+    {
+      "name": "PawPad",
+      "url": "http://10.201.2.102:5300",
+      "desc": "Basic task manager",
+      "section": "Management"
+    },
+    {
+      "name": "Master Control",
+      "url": "http://10.201.111.10/api-uci/v0/ucis/88708d61-8956-4383-85a3-6ac35307b9db",
+      "desc": "WebUI for Master Control UCI",
+      "section": "Management"
+    }
+  ]
+}
