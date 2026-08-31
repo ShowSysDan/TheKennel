@@ -5,6 +5,8 @@ Run with:  sudo python3 kennel.py
 (port 80 requires root on Linux/macOS; on Windows run as Administrator)
 """
 
+VERSION = "1.1.0"
+
 # ═══════════════════════════════════════════════════════════════
 #  SERVER CONFIG
 # ───────────────────────────────────────────────────────────────
@@ -48,7 +50,7 @@ TOOLS_DEFAULT = [
 import json
 import pathlib
 import http.server
-import socketserver
+from http.server import ThreadingHTTPServer
 
 DATA_FILE = pathlib.Path(__file__).with_name('data.json')
 
@@ -77,7 +79,10 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>The Kennel</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet"/>
+  <!-- Fonts load async (media swap trick) so the page renders immediately even
+       if the client can't reach fonts.googleapis.com -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet"/></noscript>
   <style>
     :root {
       --wood-dk:   #221208;
@@ -323,7 +328,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <div id="empty-msg">No dogs in this run.</div>
     </div>
   </div>
-  <footer>The Kennel</footer>
+  <footer>The Kennel &mdash; v__VERSION__</footer>
 </div>
 
 <script>
@@ -462,7 +467,10 @@ SETTINGS_TEMPLATE = r"""<!DOCTYPE html>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>The Kennel &mdash; Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet"/>
+  <!-- Fonts load async (media swap trick) so the page renders immediately even
+       if the client can't reach fonts.googleapis.com -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'"/>
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet"/></noscript>
   <style>
     :root {
       --wood-dk:   #221208;
@@ -606,7 +614,7 @@ SETTINGS_TEMPLATE = r"""<!DOCTYPE html>
       <tbody id="tools-body"></tbody>
     </table>
   </div>
-  <footer>The Kennel &mdash; Admin</footer>
+  <footer>The Kennel &mdash; Admin &mdash; v__VERSION__</footer>
 </div>
 <script>
   var initialTools = __TOOLS__;
@@ -716,15 +724,22 @@ def build_html(tools) -> str:
     html = html.replace("__STREAM_NAME__", json.dumps(STREAM_NAME))
     html = html.replace("__SHOW_PLAYER__", "true" if SHOW_PLAYER else "false")
     html = html.replace("__TOOLS__",       json.dumps(tools, ensure_ascii=False))
+    html = html.replace("__VERSION__",     VERSION)
     return html
 
 
 def build_settings_html(tools) -> str:
-    return SETTINGS_TEMPLATE.replace("__TOOLS__", json.dumps(tools, ensure_ascii=False))
+    html = SETTINGS_TEMPLATE.replace("__TOOLS__", json.dumps(tools, ensure_ascii=False))
+    return html.replace("__VERSION__", VERSION)
 
 
 class KennelHandler(http.server.BaseHTTPRequestHandler):
     _page = None  # main page cache; rebuilt after every /api/save
+
+    # Drop connections that go silent for 10s. Browsers open speculative
+    # "preconnect" sockets that never send a request; without a timeout the
+    # server would hold them open until the browser gives up (30-70s).
+    timeout = 10
 
     def do_GET(self):
         path = self.path.split('?')[0]
@@ -733,10 +748,7 @@ class KennelHandler(http.server.BaseHTTPRequestHandler):
         elif path == '/kennel-admin':
             self._serve(build_settings_html(load_tools()))
         else:
-            self.send_response(404)
-            self.send_header('Content-Type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(b'Not found')
+            self._respond(404, 'text/plain', b'Not found')
 
     def do_POST(self):
         path = self.path.split('?')[0]
@@ -747,23 +759,19 @@ class KennelHandler(http.server.BaseHTTPRequestHandler):
                 tools  = body.get('tools', [])
                 save_tools(tools)
                 KennelHandler._page = build_html(load_tools())
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(b'{"ok":true}')
+                self._respond(200, 'application/json', b'{"ok":true}')
             except Exception as e:
-                self.send_response(500)
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({'error': str(e)}).encode('utf-8'))
+                self._respond(500, 'application/json',
+                              json.dumps({'error': str(e)}).encode('utf-8'))
         else:
-            self.send_response(404)
-            self.end_headers()
+            self._respond(404, 'text/plain', b'Not found')
 
     def _serve(self, html):
-        body = html.encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self._respond(200, 'text/html; charset=utf-8', html.encode('utf-8'))
+
+    def _respond(self, status, content_type, body):
+        self.send_response(status)
+        self.send_header('Content-Type', content_type)
         self.send_header('Content-Length', str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -776,10 +784,13 @@ if __name__ == "__main__":
     tools = load_tools()
     KennelHandler._page = build_html(tools)
 
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer((HOST, PORT), KennelHandler) as httpd:
+    # ThreadingHTTPServer handles each connection in its own daemon thread,
+    # so one slow or idle client (e.g. a browser preconnect socket that never
+    # sends a request) can no longer block every other visitor. It also sets
+    # allow_reuse_address, so fast restarts don't hit 'Address already in use'.
+    with ThreadingHTTPServer((HOST, PORT), KennelHandler) as httpd:
         addr = "http://localhost" + (f":{PORT}" if PORT != 80 else "")
-        print(f"The Kennel is running at {addr}")
+        print(f"The Kennel v{VERSION} is running at {addr}")
         print(f"  Admin:  {addr}/kennel-admin")
         print("Press Ctrl-C to stop.\n")
         try:
